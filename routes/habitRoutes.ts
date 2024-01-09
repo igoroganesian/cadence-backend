@@ -30,8 +30,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-export default router;
-
 /** POST /api/habits
  *
  * Description:
@@ -83,3 +81,67 @@ router.post('/', async (req, res) => {
     }
   }
 });
+
+/** PATCH */
+
+router.patch('/:id', async (req, res) => {
+  const { id } = req.params;
+  const { name, color } = req.body;
+
+  //add validation
+
+  try {
+    let updateQuery = 'UPDATE habits SET ';
+    const updateValues = [];
+    if (name !== undefined) {
+      updateValues.push(name);
+      updateQuery += `name = $${updateValues.length}`;
+    }
+    if (color !== undefined) {
+      if (updateValues.length > 0) updateQuery += ', ';
+      updateValues.push(color);
+      updateQuery += `color = $${updateValues.length}`;
+    }
+    updateQuery += ` WHERE id = $${updateValues.length + 1} RETURNING *`;
+
+    if (updateValues.length === 0) {
+      return res
+        .status(400)
+        .json({ message: 'No fields to update were provided' });
+    }
+
+    const { rows } = await pool.query(updateQuery, [...updateValues, id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Habit not found' });
+    }
+
+    res.status(200).json(rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
+/** DELETE */
+
+router.delete('/:id', async (req, res) => {
+  const { id } = req.params;
+
+  // id validation?
+
+  try {
+    const deleteQuery = 'DELETE FROM habits WHERE id = $1 RETURNING *';
+    const { rows } = await pool.query(deleteQuery, [id]);
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Habit not found' });
+    }
+
+    res.status(200).json({ message: 'Habit deleted successfully' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
+export default router;
