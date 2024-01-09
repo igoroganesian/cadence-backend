@@ -54,3 +54,32 @@ export default router;
  *    - 500 Internal Server Error
  *    Returns a message describing the error.
  */
+
+router.post('/', async (req, res) => {
+  const { name, color } = req.body;
+
+  if (!name) {
+    return res
+      .status(400)
+      .json({ message: 'Habit name is required' });
+  }
+
+  try {
+    const insertQuery = `INSERT INTO habits (name, color)
+                         VALUES ($1, $2)
+                         RETURNING *`;
+    const values = [name, color];
+
+    const { rows } = await pool.query(insertQuery, values);
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    if (typeof (err as { message: unknown; }).message === 'string') {
+      console.error('Error:', (err as { message: string; }).message);
+      res.status(500).json({ message: (err as { message: string; }).message });
+    } else {
+      console.error('Unknown Error:', err);
+      res.status(500).json({ message: 'An unknown error occured' });
+    }
+  }
+});
