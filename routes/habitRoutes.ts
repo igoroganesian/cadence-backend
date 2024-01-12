@@ -82,10 +82,36 @@ router.post('/', async (req, res) => {
   }
 });
 
-/** PATCH */
+/** PATCH /api/habits/:id
+ *
+ * Description:
+ *    Updates specific fields of an existing habit.
+ *
+ * Parameters:
+ *    - id: Unique identifier of the habit to update.
+ *
+ * Request Body:
+ *    - Fields that need to be updated (e.g. name, color).
+ *    ex. { "name": "Running", "color": "#616f71" }
+ *
+ * Responses:
+ *    - 200 OK: Successful update.
+ *    Returns the updated habit object.
+ *
+ *    - 400 Bad Request: If no fields are provided or the id is not valid.
+ *
+ *    - 404 Not Found: If no habit with the provided id is found.
+ *
+ *    - 500 Internal Server Error
+*/
 
 router.patch('/:id', async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id);
+
+  if (isNaN(id) || id <= 0) {
+    return res.status(400).json({ message: 'Invalid ID format' });
+  }
+
   const { name, color } = req.body;
 
   //add validation
@@ -122,12 +148,31 @@ router.patch('/:id', async (req, res) => {
   }
 });
 
-/** DELETE */
+/** DELETE /api/habits/:id
+ *
+ * Description:
+ *    Deletes an existing habit.
+ *
+ * Parameters:
+ *    - id: Unique identifier of the habit to delete.
+ *
+ * Responses:
+ *    - 200 OK: Successful deletion
+ *    Returns a message confirming deletion.
+ *
+ *    - 400 Bad Request: If the id is not valid.
+ *
+ *    - 404 Not Found: If no habit with the provided id is found.
+ *
+ *    - 500 Internal Server Error
+*/
 
 router.delete('/:id', async (req, res) => {
-  const { id } = req.params;
+  const id = parseInt(req.params.id);
 
-  // id validation?
+  if (isNaN(id) || id <= 0) {
+    return res.status(400).json({ message: 'Invalid ID format' });
+  }
 
   try {
     const deleteQuery = 'DELETE FROM habits WHERE id = $1 RETURNING *';

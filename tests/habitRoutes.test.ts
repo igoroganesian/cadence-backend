@@ -70,8 +70,8 @@ describe('Habit Routes', () => {
     });
   });
 
-  describe('PATCH /api/lessons', () => {
-    it('should update an existing lesson', async () => {
+  describe('PATCH /api/habit', () => {
+    it('should update an existing habit', async () => {
       const habitId = 1;
       const updatedHabit = {
         name: "Coding",
@@ -86,6 +86,15 @@ describe('Habit Routes', () => {
       expect(response.body).toHaveProperty('id');
       expect(response.body.name).toBe(updatedHabit.name);
       expect(response.body.color).toBe(updatedHabit.color);
+    });
+
+    it('should throw a 400 error if id is not a number', async () => {
+      const habitId = 'orange';
+
+      const response = await request(app)
+        .delete(`/api/habits/${habitId}`);
+
+      expect(response.statusCode).toBe(400);
     });
 
     it('should throw a 404 error if habit id not found', async () => {
@@ -112,6 +121,15 @@ describe('Habit Routes', () => {
 
       expect(response.statusCode).toBe(200);
       expect(response.body).toEqual({ message: 'Habit deleted successfully' });
+    });
+
+    it('should throw a 400 error if id is not a number', async () => {
+      const habitId = 'orange';
+
+      const response = await request(app)
+        .delete(`/api/habits/${habitId}`);
+
+      expect(response.statusCode).toBe(400);
     });
 
     it('should throw a 404 error if habit id not found', async () => {
