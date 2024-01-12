@@ -23,8 +23,32 @@ const router = express.Router();
 
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM habits');
-    res.json(rows);
+    const query = `
+      SELECT
+        habits.id,
+        habits.name,
+        habits.color,
+        array_agg(activity_logs.log_date ORDER BY activity_logs.log_date) as activityLog
+      FROM
+        habits
+      LEFT JOIN
+        activity_logs ON habits.id = activity_logs.habit_id
+      GROUP BY
+        habits.id
+      ORDER BY
+        habits.id;
+    `;
+
+    const { rows } = await pool.query(query);
+
+    const habitsArray = rows.map(habit => ({
+      id: habit.id,
+      name: habit.name,
+      color: habit.color,
+      activityLog: habit.activitylog.filter((logDate: Date | null) => logDate !== null)
+    }));
+
+    res.json(habitsArray);
   } catch (err) {
     res.status(500).json({ message: (err as { message: string; }).message });
   }
@@ -113,8 +137,6 @@ router.patch('/:id', async (req, res) => {
   }
 
   const { name, color } = req.body;
-
-  //add validation
 
   try {
     let updateQuery = 'UPDATE habits SET ';

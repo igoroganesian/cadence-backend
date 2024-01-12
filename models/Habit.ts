@@ -2,6 +2,7 @@ export interface Habit {
   id: number;
   name: string;
   color: string;
+  activityLog: Date[];
 }
 
 export interface ActivityLog {
