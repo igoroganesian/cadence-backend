@@ -60,14 +60,14 @@ router.get('/', async (req, res) => {
  *    Creates a new habit and inserts it into the database.
  *
  * Request Body:
- *    - name: string - The (name of the) habit.
- *    - color: string - The color for the habit.
+ *    - name: string - The habit name.
+ *    - color: string - The habit display color.
  *    ex: { "name": "Drawing", "color": "#d6b4fc" }
  *
  * Responses:
  *    - 201 Created: Successfully created the new habit.
- *    Returns the new habit object, including its id, name, and color
- *    ex. { "id": 1, "name": "Drawing", "color": "#d6b4fc" }
+ *    Returns the new habit object, including its id, name, color, and empty activityLog
+ *    ex. { "id": 1, "name": "Drawing", "color": "#d6b4fc", "activityLog": [] }
  *
  *    - 400 Bad Request: If 'name' or 'color' are missing in the request body.
  *    Returns a message indicating that both name and color are required.
@@ -93,8 +93,10 @@ router.post('/', async (req, res) => {
     const values = [name, color];
 
     const { rows } = await pool.query(insertQuery, values);
+    const newHabit = rows[0];
+    newHabit.activityLog = [];
 
-    res.status(201).json(rows[0]);
+    res.status(201).json(newHabit);
   } catch (err) {
     if (typeof (err as { message: unknown; }).message === 'string') {
       console.error('Error:', (err as { message: string; }).message);

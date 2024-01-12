@@ -2,6 +2,7 @@ import request from 'supertest';
 import app from '../src/app';
 import db from '../db';
 import pool from '../db';
+import { Habit } from '../models/Habit';
 
 describe('Habit Routes', () => {
   beforeEach(async () => {
@@ -33,10 +34,14 @@ describe('Habit Routes', () => {
   });
 
   describe('GET /api/habits', () => {
-    it('should return all habits', async () => {
+    it('should return all habits with activity logs', async () => {
       const response = await request(app).get('/api/habits');
       expect(response.statusCode).toBe(200);
       expect(response.body).toBeInstanceOf(Array);
+
+      response.body.forEach((habit: Habit) => {
+        expect(habit.activityLog).toBeInstanceOf(Array);
+      })
     });
   });
 
@@ -55,6 +60,8 @@ describe('Habit Routes', () => {
       expect(response.body).toHaveProperty('id');
       expect(response.body.name).toBe(newHabit.name);
       expect(response.body.color).toBe(newHabit.color);
+      expect(response.body.activityLog).toBeInstanceOf(Array);
+      expect(response.body.activityLog.length).toBe(0);
     });
 
     it('should throw a 400 error without a name', async () => {
