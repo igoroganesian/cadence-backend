@@ -152,7 +152,7 @@ router.patch('/:id', async (req, res) => {
       updateValues.push(color);
       updateQuery += `color = $${updateValues.length}`;
     }
-    updateQuery += ` WHERE id = $${updateValues.length + 1} RETURNING *`;
+    updateQuery += ` WHERE id = $${updateValues.length + 1}`;
 
     if (updateValues.length === 0) {
       return res
@@ -160,12 +160,27 @@ router.patch('/:id', async (req, res) => {
         .json({ message: 'No fields to update were provided' });
     }
 
-    const { rows } = await pool.query(updateQuery, [...updateValues, id]);
-    if (rows.length === 0) {
+    await pool.query(updateQuery, [...updateValues, id]);
+
+    const updatedHabitQuery = `
+      SELECT habits.*, array_agg(activity_logs.log_date ORDER BY activity_logs.log_date) AS "activityLog"
+      FROM habits
+      LEFT JOIN activity_logs ON habits.id = activity_logs.habit_id
+      WHERE habits.id = $1
+      GROUP BY habits.id
+    `;
+
+    const habitResult = await pool.query(updatedHabitQuery, [id]);
+
+    if (habitResult.rows.length === 0) {
       return res.status(404).json({ message: 'Habit not found' });
     }
 
-    res.status(200).json(rows[0]);
+    const updatedHabit = habitResult.rows[0];
+
+    updatedHabit.activityLog = updatedHabit.activityLog.filter((logDate: Date | null) => logDate !== null)
+
+    res.status(200).json(updatedHabit);
   } catch (err) {
     console.error(err);
     res.status(500).send('Server error');
