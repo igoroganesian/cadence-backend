@@ -177,12 +177,90 @@ router.patch('/:id', async (req, res) => {
     }
 
     const updatedHabit = habitResult.rows[0];
+    console.log(updatedHabit);
 
-    updatedHabit.activityLog = updatedHabit.activityLog.filter((logDate: Date | null) => logDate !== null)
+    updatedHabit.activityLog = updatedHabit.activityLog.filter((logDate: Date | null) => logDate !== null);
 
     res.status(200).json(updatedHabit);
   } catch (err) {
     console.error(err);
+    res.status(500).send('Server error');
+  }
+});
+
+/** PATCH /api/habits/:id/activity
+ *
+ * Description:
+ *    Updates activityLog of an existing habit.
+ *
+ * Parameters:
+ *    - id: Unique identifier of the habit to update.
+ *
+ * //TODO: CORRECT BELOW
+ * Request Body:
+ *
+ * Responses:
+ *    - 200 OK: Successful update.
+ *    Returns the updated habit object.
+ *
+ *    - 400 Bad Request: If no fields are provided or the id is not valid.
+ *
+ *    - 404 Not Found: If no habit with the provided id is found.
+ *
+ *    - 500 Internal Server Error
+*/
+
+router.patch('/:id/activity', async (req, res) => {
+  const id = parseInt(req.params.id);
+
+  if (isNaN(id) || id <= 0) {
+    return res.status(400).json({ message: 'Invalid ID format' });
+  }
+
+  const { activityData } = req.body;
+
+  console.log(req.body);
+
+  try {
+    await pool.query('BEGIN');
+
+    console.log(`Deleting existing logs for habit id: ${id}`);
+    const deleteResult = await pool.query('DELETE FROM activity_logs WHERE habit_id = $1', [id]);
+    console.log(`Deleted ${deleteResult.rowCount} rows.`);
+
+    const insertPromises = activityData.map((logDate: Date) =>
+      pool.query('INSERT INTO activity_logs (habit_id, log_date) VALUES ($1, $2)', [id, logDate])
+    );
+    await Promise.all(insertPromises);
+
+    await pool.query('COMMIT');
+
+    const updatedHabitQuery = `
+            SELECT habits.*, array_agg(activity_logs.log_date ORDER BY activity_logs.log_date) AS "activityLog"
+            FROM habits
+            LEFT JOIN activity_logs ON habits.id = activity_logs.habit_id
+            WHERE habits.id = $1
+            GROUP BY habits.id
+        `;
+
+    const habitResult = await pool.query(updatedHabitQuery, [id]);
+
+    if (habitResult.rows.length === 0) {
+      return res.status(404).json({ message: 'Habit not found' });
+    }
+
+    const updatedHabit = habitResult.rows[0];
+
+    if (updatedHabit.activityLog) {
+      updatedHabit.activityLog = updatedHabit.activityLog.map((logDate: Date) =>
+        logDate.toISOString().split('T')[0]
+      );
+    }
+
+    res.status(200).json(updatedHabit);
+  } catch (err) {
+    await pool.query('ROLLBACK');
+    console.error('Error updating activity log:', err);
     res.status(500).send('Server error');
   }
 });
