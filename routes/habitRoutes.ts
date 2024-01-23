@@ -293,7 +293,7 @@ router.patch('/:id/activity', async (req, res) => {
 /** DELETE /api/habits/:id
  *
  * Description:
- *    Deletes an existing habit.
+ *    Deletes an existing habit with associated activityLog.
  *
  * Parameters:
  *    - id: Unique identifier of the habit to delete.

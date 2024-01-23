@@ -22,7 +22,7 @@ describe('Habit Routes', () => {
           id SERIAL PRIMARY KEY,
           habit_id INTEGER NOT NULL,
           log_date DATE NOT NULL,
-          FOREIGN KEY (habit_id) REFERENCES habits(id),
+          FOREIGN KEY (habit_id) REFERENCES habits(id) ON DELETE CASCADE,
           UNIQUE (habit_id, log_date)
       );`;
 
@@ -32,6 +32,8 @@ describe('Habit Routes', () => {
     } catch (error) {
       console.error('Error initializing test database:', error);
     }
+
+    console.log(await request(app).get('/api/habits'));
   });
 
   describe('GET /api/habits', () => {
@@ -117,6 +119,71 @@ describe('Habit Routes', () => {
         .send(updatedHabit);
 
       expect(response.statusCode).toBe(404);
+    });
+  });
+
+  describe('PATCH /api/habits/:id/activity', () => {
+    it(`should update an existing habit's activity log`, async () => {
+      const habitId = 1;
+      const updatedHabit = {
+        activityData: ["2024-01-01"]
+      };
+
+      const response = await request(app)
+        .patch(`/api/habits/${habitId}/activity`)
+        .send(updatedHabit);
+
+      expect(response.statusCode).toBe(200);
+      expect(response.body).toHaveProperty('id');
+      expect(response.body.activityLog).toEqual(updatedHabit.activityData);
+    });
+
+    it('should throw a 400 error if activityData is empty', async () => {
+      const habitId = 1;
+      const updatedHabit = {
+        activityData: []
+      };
+
+      const response = await request(app)
+        .patch(`/api/habits/${habitId}/activity`)
+        .send(updatedHabit);
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it(`should throw a 400 error if activityData isn't an array`, async () => {
+      const habitId = 1;
+      const updatedHabit = {
+        activityData: {}
+      };
+
+      const response = await request(app)
+        .patch(`/api/habits/${habitId}/activity`)
+        .send(updatedHabit);
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should throw a 400 error if id is not a number', async () => {
+      const habitId = 'red';
+
+      const response = await request(app)
+        .delete(`/api/habits/${habitId}`);
+
+      expect(response.statusCode).toBe(400);
+    });
+
+    it('should throw a 404 error if habit id not found', async () => {
+      const habitId = 999;
+      const updatedHabit = {
+        activityData: ["2024-01-01"]
+      };
+
+      const response = await request(app)
+        .patch(`/api/habits/${habitId}`)
+        .send(updatedHabit);
+
+      expect(response.statusCode).toBe(400);
     });
   });
 
