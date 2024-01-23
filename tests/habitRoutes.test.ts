@@ -22,7 +22,8 @@ describe('Habit Routes', () => {
           id SERIAL PRIMARY KEY,
           habit_id INTEGER NOT NULL,
           log_date DATE NOT NULL,
-          FOREIGN KEY (habit_id) REFERENCES habits(id)
+          FOREIGN KEY (habit_id) REFERENCES habits(id),
+          UNIQUE (habit_id, log_date)
       );`;
 
       await testDb.query(habitTable);

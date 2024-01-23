@@ -15,7 +15,7 @@ const router = express.Router();
  *
  *    ex.
  *    [
- *      {"id": 1, "name": "Drawing", "color": "#FF5733", "activityLog": [] }
+ *      {"id": 1, "name": "Drawing", "color": "#FF5733", "activityLog": ["2023-04-19", "2024-01-02"] }
  *    ]
  *
  *    - 500 Internal Server Error
@@ -45,7 +45,9 @@ router.get('/', async (req, res) => {
       id: habit.id,
       name: habit.name,
       color: habit.color,
-      activityLog: habit.activitylog.filter((logDate: Date | null) => logDate !== null)
+      activityLog: habit.activitylog
+        .filter((logDate: Date | null) => logDate !== null)
+        .map((logDate: Date) => logDate.toISOString().split('T')[0])
     }));
 
     res.json(habitsArray);
@@ -163,11 +165,16 @@ router.patch('/:id', async (req, res) => {
     await pool.query(updateQuery, [...updateValues, id]);
 
     const updatedHabitQuery = `
-      SELECT habits.*, array_agg(activity_logs.log_date ORDER BY activity_logs.log_date) AS "activityLog"
-      FROM habits
-      LEFT JOIN activity_logs ON habits.id = activity_logs.habit_id
-      WHERE habits.id = $1
-      GROUP BY habits.id
+      SELECT
+        habits.*, array_agg(activity_logs.log_date ORDER BY activity_logs.log_date) AS "activityLog"
+      FROM
+        habits
+      LEFT JOIN
+        activity_logs ON habits.id = activity_logs.habit_id
+      WHERE
+        habits.id = $1
+      GROUP BY
+        habits.id
     `;
 
     const habitResult = await pool.query(updatedHabitQuery, [id]);
@@ -229,18 +236,31 @@ router.patch('/:id/activity', async (req, res) => {
     console.log(`Deleted ${deleteResult.rowCount} rows.`);
 
     const insertPromises = activityData.map((logDate: Date) =>
-      pool.query('INSERT INTO activity_logs (habit_id, log_date) VALUES ($1, $2)', [id, logDate])
+      pool.query(`
+        INSERT INTO
+          activity_logs (habit_id, log_date)
+        VALUES
+          ($1, $2)
+        ON CONFLICT
+          (habit_id, log_date)
+        DO NOTHING`,
+        [id, logDate])
     );
     await Promise.all(insertPromises);
 
     await pool.query('COMMIT');
 
     const updatedHabitQuery = `
-            SELECT habits.*, array_agg(activity_logs.log_date ORDER BY activity_logs.log_date) AS "activityLog"
-            FROM habits
-            LEFT JOIN activity_logs ON habits.id = activity_logs.habit_id
-            WHERE habits.id = $1
-            GROUP BY habits.id
+            SELECT
+              habits.*, array_agg(activity_logs.log_date ORDER BY activity_logs.log_date) AS "activityLog"
+            FROM
+              habits
+            LEFT JOIN
+              activity_logs ON habits.id = activity_logs.habit_id
+            WHERE
+              habits.id = $1
+            GROUP BY
+              habits.id
         `;
 
     const habitResult = await pool.query(updatedHabitQuery, [id]);
