@@ -198,19 +198,20 @@ router.patch('/:id', async (req, res) => {
 /** PATCH /api/habits/:id/activity
  *
  * Description:
- *    Updates activityLog of an existing habit.
+ *    Updates the activityLog of an existing habit to reflect the data passed in;
+ *    deletes existing dates and adds those in activityData to the habit's log.
  *
  * Parameters:
  *    - id: Unique identifier of the habit to update.
  *
- * //TODO: CORRECT BELOW
  * Request Body:
+ *    - activityData: An array of date strings in 'YYYY-MM-DD' format.
  *
  * Responses:
  *    - 200 OK: Successful update.
- *    Returns the updated habit object.
+ *    Returns the updated habit object with new log dates.
  *
- *    - 400 Bad Request: If no fields are provided or the id is not valid.
+ *    - 400 Bad Request: If 'activityData' is not provided, is empty, or the id is not valid.
  *
  *    - 404 Not Found: If no habit with the provided id is found.
  *
@@ -225,6 +226,10 @@ router.patch('/:id/activity', async (req, res) => {
   }
 
   const { activityData } = req.body;
+
+  if (!Array.isArray(activityData) || activityData.length === 0) {
+    return res.status(400).json({ message: 'An activityData array is required and must contain date strings' });
+  }
 
   console.log(req.body);
 
