@@ -13,4 +13,4 @@ Emphasizing simplicity and efficacy, Cadence provides a streamlined platform for
 # To do:
 
 - User models w/ login functionality to preserve activity data
-- Date and month labels on calendars
+- Weekday and month labels on calendars
